@@ -40,9 +40,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/klkh/fuel-station/edit/{id}', [KLKHFuelStationController::class, 'edit']);
     Route::put('/klkh/fuel-station/update/{id}', [KLKHFuelStationController::class, 'update']);
     Route::get('/klkh/fuel-station/download/{id}', [KLKHFuelStationController::class, 'download']);
-    Route::get('/klkh/fuel-station/verified/all/{id}', [KLKHFuelStationController::class, 'verifiedAll']);
-    Route::get('/klkh/fuel-station/verified/pengawas/{id}', [KLKHFuelStationController::class, 'verifiedPengawas']);
-    Route::get('/klkh/fuel-station/verified/diketahui/{id}', [KLKHFuelStationController::class, 'verifiedDiketahui']);
+    Route::put('/klkh/fuel-station/verified/all', [KLKHFuelStationController::class, 'verifiedAll']);
+    Route::put('/klkh/fuel-station/verified/pengawas', [KLKHFuelStationController::class, 'verifiedPengawas']);
+    Route::put('/klkh/fuel-station/verified/diketahui', [KLKHFuelStationController::class, 'verifiedDiketahui']);
 
     Route::get('/kkh', [KKHController::class, 'index']);
     Route::get('/kkh/name', [KKHController::class, 'name']);

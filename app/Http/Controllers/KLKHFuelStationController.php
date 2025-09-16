@@ -563,16 +563,16 @@ class KLKHFuelStationController extends Controller
 
     }
 
-    public function verifiedPengawas(Request $request, $id)
+    public function verifiedPengawas(Request $request)
     {
 
-        $klkh =  KLKHFuelStation::where('ID', $id)->first();
+        $klkh =  KLKHFuelStation::where('ID', $request->id)->first();
         try {
             KLKHFuelStation::where('ID', $klkh->ID)->update([
                 'VERIFIED_PENGAWAS' => (string)Auth::user()->nik,
                 'VERIFIED_DATETIME_PENGAWAS' => Carbon::now(),
                 'UPDATED_BY' => Auth::user()->id,
-                // 'CATATAN_VERIFIED_PENGAWAS' => $request->catatan_verified_pengawas,
+                'CATATAN_VERIFIED_PENGAWAS' => $request->catatan_verified_pengawas,
             ]);
 
             return response()->json([
@@ -590,16 +590,16 @@ class KLKHFuelStationController extends Controller
 
     }
 
-    public function verifiedDiketahui(Request $request, $id, FirebaseService $firebase)
+    public function verifiedDiketahui(Request $request, FirebaseService $firebase)
     {
 
-        $klkh =  KLKHFuelStation::where('ID', $id)->first();
+        $klkh =  KLKHFuelStation::where('ID', $request->id)->first();
         try {
             KLKHFuelStation::where('ID', $klkh->ID)->update([
                 'VERIFIED_DIKETAHUI' => (string)Auth::user()->nik,
                 'VERIFIED_DATETIME_DIKETAHUI' => Carbon::now(),
                 'UPDATED_BY' => Auth::user()->id,
-                // 'CATATAN_VERIFIED_DIKETAHUI' => $request->catatan_verified_diketahui,
+                'CATATAN_VERIFIED_DIKETAHUI' => $request->catatan_verified_diketahui,
             ]);
 
             Activity::create([
