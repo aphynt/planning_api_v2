@@ -21,23 +21,33 @@ class AuthController extends Controller
             ]
         );
 
-        $user = User::where('nik', $request->nik)->first();
+        try {
+            $user = User::where('nik', $request->nik)->first();
 
-        if (! $user || ! Hash::check($request->password, $user->password)) {
+            if (! $user || ! Hash::check($request->password, $user->password)) {
+                return response()->json([
+                    'message' => 'Login gagal. NIK atau password salah.',
+                    'copyright' => env('COPYRIGHT'),
+                ], 401);
+            }
+
+            $token = $user->createToken('auth-token')->plainTextToken;
+
             return response()->json([
-                'message' => 'Login gagal. NIK atau password salah.',
+                'message' => 'Berhasil login',
+                'token' => $token,
+                'user' => $user,
                 'copyright' => env('COPYRIGHT'),
-            ], 401);
+            ]);
+
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal login, silakan coba kembali',
+                'error' => $th->getMessage(),
+            ], 500);
         }
 
-        $token = $user->createToken('auth-token')->plainTextToken;
-
-        return response()->json([
-            'message' => 'Login berhasil',
-            'token' => $token,
-            'user' => $user,
-            'copyright' => env('COPYRIGHT'),
-        ]);
     }
 
     public function logout(Request $request)
