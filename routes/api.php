@@ -47,6 +47,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/kkh', [KKHController::class, 'index']);
     Route::get('/kkh/name', [KKHController::class, 'name']);
     Route::put('/kkh/verifikasi', [KKHController::class, 'verifikasi']);
+    Route::put('/kkh/verifikasi/selection', [KKHController::class, 'verifikasiSelection']);
 
     //User Diketahui
     Route::get('/users/diketahui', [UserDiketahuiController::class, 'index']);

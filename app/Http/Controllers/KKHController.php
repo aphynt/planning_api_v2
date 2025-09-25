@@ -24,6 +24,7 @@ class KKHController extends Controller
             }
             $shift     = $request->input('shift');   // "Pagi", "Malam", atau null
             $name      = $request->input('name');    // Nik tertentu atau "Semua"
+            $verifikasi      = $request->input('verifikasi');    // Verifikasi tertentu atau "Semua"
 
 
             $kkh = DB::connection('sims')->table('db_payroll.dbo.web_kkh as kkh')
@@ -116,6 +117,16 @@ class KKHController extends Controller
             // Filter nama
             if (!empty($name) && $name !== 'Semua') {
                 $kkh->where('kkh.Nik', $name);
+            }
+
+            // Filter verifikasi
+            if (!empty($verifikasi) && $verifikasi !== 'Semua') {
+                if($verifikasi == "Belum diverifikasi"){
+                    $kkh->whereIn('kkh.ferivikasi_pengawas', [null, 0]);
+                }else{
+                    $kkh->whereIn('kkh.ferivikasi_pengawas', [1]);
+                }
+
             }
 
             $totalRecords = $kkh->count();
@@ -236,6 +247,35 @@ class KKHController extends Controller
 
             DB::connection('sims')->table('web_kkh')
                 ->where('id', $rowID)
+                ->update([
+                    'ferivikasi_pengawas' => true,
+                    'nik_pengawas' => Auth::user()->nik,
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Berhasil verifikasi KKH',
+            ], 200);
+
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal verifikasi KKH',
+                'error' => $th->getMessage(),
+            ], 500);
+        }
+
+    }
+
+    public function verifikasiSelection(Request $request)
+    {
+
+        try {
+
+            $rowID = $request->id;
+
+            DB::connection('sims')->table('web_kkh')
+                ->whereIn('id', $rowID)
                 ->update([
                     'ferivikasi_pengawas' => true,
                     'nik_pengawas' => Auth::user()->nik,
