@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Services\FirebaseService;
 
 class KKHController extends Controller
 {
@@ -238,32 +240,75 @@ class KKHController extends Controller
         }
     }
 
-    public function verifikasi(Request $request)
+    public function verifikasi(Request $request, FirebaseService $firebase)
     {
-
         try {
-
             $rowID = $request->id;
 
-            DB::connection('sims')->table('web_kkh')
+            $target = DB::connection('sims')->table('web_kkh as kkh')
+                ->leftJoin('tbl_data_hr as hr', 'kkh.nik', '=', 'hr.Nik')
+                ->where('kkh.id', $rowID)
+                ->select([
+                    'hr.Nik as nik_hr',
+                    'kkh.tgl',
+                    'kkh.shift_kkh',
+                ])
+                ->first();
+
+            if (!$target) {
+                return response()->json([
+                    'status'  => 'warning',
+                    'message' => 'ID KKH tidak ditemukan.',
+                ], 404);
+            }
+
+            $affected = DB::connection('sims')->table('web_kkh')
                 ->where('id', $rowID)
                 ->update([
-                    'ferivikasi_pengawas' => true,
-                    'nik_pengawas' => Auth::user()->nik,
-            ]);
+                    'ferivikasi_pengawas' => 1,
+                    'nik_pengawas'        => Auth::user()->nik,
+                ]);
 
+            if ($affected === 0) {
+                return response()->json([
+                    'status'  => 'warning',
+                    'message' => 'Tidak ada baris yang diubah (mungkin sudah terverifikasi atau nilai sama).',
+                ], 200);
+            }
+
+            $userNotif = \App\Models\User::where('nik', $target->nik_hr)->first();
+
+            if ($userNotif && !empty($userNotif->fcm_token)) {
+                $deviceToken = $userNotif->fcm_token;
+                $verifikator = Auth::user()->name;
+
+                $tanggal = $target->tgl
+                    ? Carbon::parse($target->tgl)->locale('id')->translatedFormat('d M Y')
+                    : '-';
+
+                $shift = $target->shift_kkh ?? '-';
+
+                $title = 'KKH Terverifikasi';
+                $body  = "KKH Anda telah diverifikasi oleh {$verifikator} ( yang di Tanggal {$tanggal}, Shift {$shift}).";
+
+                $firebase->sendNotification($deviceToken, $title, $body);
+            }
+
+            // 4) Respon sukses
             return response()->json([
-                'status' => 'success',
+                'status'  => 'success',
                 'message' => 'Berhasil verifikasi KKH',
             ], 200);
 
         } catch (\Throwable $th) {
             return response()->json([
-                'status' => 'error',
+                'status'  => 'error',
                 'message' => 'Gagal verifikasi KKH',
-                'error' => $th->getMessage(),
+                'error'   => $th->getMessage(),
             ], 500);
         }
+
+
 
     }
 
