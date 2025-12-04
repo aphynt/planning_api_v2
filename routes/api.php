@@ -10,6 +10,7 @@ use App\Http\Controllers\KKHController;
 use App\Http\Controllers\KLKHFuelStationController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ShiftController;
+use App\Http\Controllers\SOPController;
 use App\Http\Controllers\UserDiketahuiController;
 use Illuminate\Support\Facades\Route;
 
@@ -44,10 +45,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/klkh/fuel-station/verified/pengawas', [KLKHFuelStationController::class, 'verifiedPengawas']);
     Route::put('/klkh/fuel-station/verified/diketahui', [KLKHFuelStationController::class, 'verifiedDiketahui']);
 
+    //KKH
     Route::get('/kkh', [KKHController::class, 'index']);
     Route::get('/kkh/name', [KKHController::class, 'name']);
     Route::put('/kkh/verifikasi', [KKHController::class, 'verifikasi']);
     Route::put('/kkh/verifikasi/selection', [KKHController::class, 'verifikasiSelection']);
+
+    //SOP
+    Route::get('/sop', [SOPController::class, 'index']);
+    Route::get('/sop/name', [SOPController::class, 'name']);
+    Route::get('/sop/file/{uuid}', [SOPController::class, 'file']);
 
     //User Diketahui
     Route::get('/users/diketahui', [UserDiketahuiController::class, 'index']);
