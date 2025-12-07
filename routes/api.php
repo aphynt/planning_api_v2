@@ -9,6 +9,7 @@ use App\Http\Controllers\FCMTokenController;
 use App\Http\Controllers\KKHController;
 use App\Http\Controllers\KLKHFuelStationController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\SOPController;
 use App\Http\Controllers\UserDiketahuiController;
@@ -73,4 +74,7 @@ Route::middleware('auth:sanctum')->group(function () {
     //Activity
     Route::get('/activity/summary', [ActivityController::class, 'summary']);
     Route::get('/activity/all', [ActivityController::class, 'all']);
+
+    //Profile
+    Route::get('/profile', [ProfileController::class, 'index']);
 });
