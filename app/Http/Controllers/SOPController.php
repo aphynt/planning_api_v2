@@ -46,7 +46,7 @@ class SOPController extends Controller
             ], 404);
         }
 
-        $fileUrl = "http://36.67.119.212:9011/sop/{$file->FILE}";
+        $fileUrl = "http://124.158.168.198:9011/sop/{$file->FILE}";
 
         return response()->json([
             'success' => true,
