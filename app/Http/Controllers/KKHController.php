@@ -266,6 +266,7 @@ class KKHController extends Controller
                 ->where('id', $rowID)
                 ->update([
                     'ferivikasi_pengawas' => 1,
+                    'fit_or' => 1,
                     'nik_pengawas'        => Auth::user()->nik,
                 ]);
 
@@ -323,6 +324,7 @@ class KKHController extends Controller
                 ->whereIn('id', $rowID)
                 ->update([
                     'ferivikasi_pengawas' => true,
+                    'fit_or' => true,
                     'nik_pengawas' => Auth::user()->nik,
             ]);
 
