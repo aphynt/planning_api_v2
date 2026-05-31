@@ -18,7 +18,8 @@ class ProfileController extends Controller
                 ->table('PLANNING.dbo.users as us')
                 ->leftJoin(DB::raw('sims.db_payroll.dbo.tbl_data_hr as hr'), 'us.nik', '=', 'hr.nik')
                 ->leftJoin(DB::raw('sims.db_payroll.dbo.tm_departemen as dp'), 'hr.ID_Departemen', '=', 'dp.ID_Departemen')
-                ->leftJoin(DB::raw('sims.db_payroll.dbo.tm_jabatan as jb'), 'hr.ID_Jabatan', '=', 'jb.ID_Jabatan')
+                ->leftJoin(DB::raw('sims.db_payroll.dbo.z_tbl_jabatan_kar as jkr'), 'hr.No_KTP', '=', 'jkr.no_ktp')
+                ->leftJoin(DB::raw('sims.db_payroll.dbo.z_tbl_jabatan as jb'), 'jkr.ID_Jabatan', '=', 'jb.ID_Jabatan')
                 ->where('us.nik', Auth::user()->nik)
                 ->select(
                     'hr.Nik as nik',
