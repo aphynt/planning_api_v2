@@ -94,6 +94,9 @@ class KKHController extends Controller
                     'kkh.fit_or as FIT_BEKERJA',
                     DB::raw('UPPER(kkh.keluhan) as KELUHAN'),
                     'kkh.masalah_pribadi as MASALAH_PRIBADI',
+                    'kkh.verif_p3k',
+                    'kkh.petugas_p3k as PETUGAS_P3K',
+                    'kkh.catatan_p3k as CATATAN_P3K',
                     'kkh.ferivikasi_pengawas',
                     DB::raw("
                         CASE
@@ -138,59 +141,154 @@ class KKHController extends Controller
 
             // Misal ambil role user dari token/login
             $userRole = strtoupper(Auth::user()->role ?? '');
-
-            // Loop untuk tambahkan rule verifikasi
             $data->transform(function ($row) use ($userRole) {
-                $jabatanPengawas = strtoupper($row->JABATAN ?? '');
-                $isFuelMan = in_array($jabatanPengawas, ['FUELMAN', 'OPERATOR']);
+
+                $jabatanPengisi = strtoupper(trim($row->JABATAN ?? ''));
+
+                $isOperator = in_array(
+                    $jabatanPengisi,
+                    ['FUELMAN', 'OPERATOR']
+                );
+
+                $keluhan = strtoupper(trim($row->KELUHAN ?? ''));
+
+                $totalTidur = (float) trim($row->TOTAL_TIDUR ?? 0);
+
+                $butuhP3k =
+                    ($totalTidur < 6) ||
+                    ($keluhan !== 'FIT');
+
+                $verifP3k =
+                    (int)($row->verif_p3k ?? 0) === 1;
+
+                $verifPengawas =
+                    (int)($row->ferivikasi_pengawas ?? 0) === 1;
+
+                $row->BUTUH_P3K = $butuhP3k ? 1 : 0;
+
+                $row->CAN_VERIFY_P3K = 0;
+                $row->CAN_VERIFY_PENGAWAS = 0;
+
+                /*
+                |--------------------------------------------------------------------------
+                | User Klinik
+                |--------------------------------------------------------------------------
+                |
+                | Ganti sesuai user klinik Anda
+                |
+                */
+
+                $petugasP3kIds = [5];
+
+                $isPetugasP3k =
+                    in_array(
+                        (int) Auth::user()->id,
+                        $petugasP3kIds
+                    );
+
+                if ($butuhP3k && !$verifP3k) {
+                    $row->CAN_VERIFY_P3K =
+                        $isPetugasP3k ? 1 : 0;
+                }
+
                 $allowedToVerify = false;
 
-                // Cegah verifikasi diri sendiri
-                if ($jabatanPengawas !== $userRole && !$row->ferivikasi_pengawas) {
-                    if ($isFuelMan) {
-                        $allowedToVerify = in_array($userRole, [
-                            'JUNIOR FOREMAN', 'FOREMAN', 'JUNIOR STAFF', 'STAFF',
-                            'SUPERVISOR', 'PJS. SUPERINTENDENT', 'SUPERINTENDENT'
-                        ]);
-                    } else {
-                        switch ($jabatanPengawas) {
-                            case 'JUNIOR FOREMAN':
-                            case 'JUNIOR STAFF':
-                                $allowedToVerify = in_array($userRole, [
-                                    'FOREMAN', 'STAFF', 'SUPERVISOR',
-                                    'PJS. SUPERINTENDENT', 'SUPERINTENDENT'
-                                ]);
-                                break;
-                            case 'FOREMAN':
-                            case 'STAFF':
-                                $allowedToVerify = in_array($userRole, [
-                                    'SUPERVISOR', 'PJS. SUPERINTENDENT', 'SUPERINTENDENT'
-                                ]);
-                                break;
-                            case 'SUPERVISOR':
-                                $allowedToVerify = in_array($userRole, [
-                                    'PJS. SUPERINTENDENT', 'SUPERINTENDENT'
-                                ]);
-                                break;
-                            case 'PJS. SUPERINTENDENT':
-                                $allowedToVerify = in_array($userRole, ['SUPERINTENDENT']);
-                                break;
-                            case 'SUPERINTENDENT':
-                                $allowedToVerify = in_array($userRole, ['MANAGER']);
-                                break;
-                            default:
-                                $allowedToVerify = in_array($userRole, [
-                                    'JUNIOR FOREMAN', 'FOREMAN', 'JUNIOR STAFF', 'STAFF',
-                                    'SUPERVISOR', 'PJS. SUPERINTENDENT', 'SUPERINTENDENT'
-                                ]);
+                if (!$verifPengawas) {
+
+                    $lolosTahapP3k =
+                        (!$butuhP3k) || $verifP3k;
+
+                    if (
+                        $lolosTahapP3k &&
+                        $jabatanPengisi !== $userRole
+                    ) {
+
+                        if ($isOperator) {
+
+                            $allowedToVerify = in_array(
+                                $userRole,
+                                [
+                                    'JUNIOR FOREMAN',
+                                    'FOREMAN',
+                                    'JUNIOR STAFF',
+                                    'STAFF',
+                                    'SUPERVISOR',
+                                    'PJS. SUPERINTENDENT',
+                                    'SUPERINTENDENT'
+                                ]
+                            );
+
+                        } else {
+
+                            switch ($jabatanPengisi) {
+
+                                case 'JUNIOR FOREMAN':
+                                case 'JUNIOR STAFF':
+
+                                    $allowedToVerify = in_array(
+                                        $userRole,
+                                        [
+                                            'FOREMAN',
+                                            'STAFF',
+                                            'SUPERVISOR',
+                                            'PJS. SUPERINTENDENT',
+                                            'SUPERINTENDENT'
+                                        ]
+                                    );
+
+                                    break;
+
+                                case 'FOREMAN':
+                                case 'STAFF':
+
+                                    $allowedToVerify = in_array(
+                                        $userRole,
+                                        [
+                                            'SUPERVISOR',
+                                            'PJS. SUPERINTENDENT',
+                                            'SUPERINTENDENT'
+                                        ]
+                                    );
+
+                                    break;
+
+                                case 'SUPERVISOR':
+
+                                    $allowedToVerify = in_array(
+                                        $userRole,
+                                        [
+                                            'PJS. SUPERINTENDENT',
+                                            'SUPERINTENDENT'
+                                        ]
+                                    );
+
+                                    break;
+
+                                case 'PJS. SUPERINTENDENT':
+
+                                    $allowedToVerify =
+                                        $userRole === 'SUPERINTENDENT';
+
+                                    break;
+
+                                case 'SUPERINTENDENT':
+
+                                    $allowedToVerify =
+                                        $userRole === 'MANAGER';
+
+                                    break;
+                            }
                         }
                     }
                 }
 
-                // Tambahkan field baru ke response
-                $row->CAN_VERIFY = $allowedToVerify;
+                $row->CAN_VERIFY_PENGAWAS =
+                    $allowedToVerify ? 1 : 0;
+
                 return $row;
-        });
+            });
+
+            // return response()->json($data->first());
 
             return response()->json([
                 'status' => 'success',

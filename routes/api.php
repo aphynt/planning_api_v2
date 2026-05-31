@@ -47,10 +47,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/klkh/fuel-station/verified/diketahui', [KLKHFuelStationController::class, 'verifiedDiketahui']);
 
     //KKH
-    // Route::get('/kkh', [KKHController::class, 'index']);
-    // Route::get('/kkh/name', [KKHController::class, 'name']);
-    // Route::put('/kkh/verifikasi', [KKHController::class, 'verifikasi']);
-    // Route::put('/kkh/verifikasi/selection', [KKHController::class, 'verifikasiSelection']);
+    Route::get('/kkh', [KKHController::class, 'index']);
+    Route::get('/kkh/name', [KKHController::class, 'name']);
+    Route::put('/kkh/verifikasi', [KKHController::class, 'verifikasi']);
+    Route::put('/kkh/verifikasi/selection', [KKHController::class, 'verifikasiSelection']);
 
     //SOP
     Route::get('/sop', [SOPController::class, 'index']);
