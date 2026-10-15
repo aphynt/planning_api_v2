@@ -34,7 +34,8 @@ class KKHController extends Controller
                 ->leftJoin('db_payroll.dbo.tbl_data_hr as hr2', 'kkh.nik_pengawas', '=', 'hr2.nik')
                 ->leftJoin('db_payroll.dbo.tm_departemen as dp', 'hr.Id_Departemen', '=', 'dp.ID_Departemen')
                 ->leftJoin('db_payroll.dbo.tm_perusahaan as pr', 'hr.ID_Perusahaan', '=', 'pr.ID_Perusahaan')
-                ->leftJoin('db_payroll.dbo.tm_jabatan as jb', 'hr.ID_Jabatan', '=', 'jb.ID_Jabatan')
+                ->leftJoin('db_payroll.dbo.z_tbl_jabatan_kar as jbr', 'hr.No_KTP', '=', 'jbr.no_ktp')
+                ->leftJoin('db_payroll.dbo.tm_jabatan as jb', 'jbr.ID_Jabatan', '=', 'jb.ID_Jabatan')
                 ->select(
                     'kkh.id',
                     'kkh.tgl',

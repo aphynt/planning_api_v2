@@ -9,12 +9,22 @@ use App\Http\Controllers\FCMTokenController;
 use App\Http\Controllers\KKHController;
 use App\Http\Controllers\KLKHFuelStationController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\P2HController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\SOPController;
 use App\Http\Controllers\UserDiketahuiController;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/app-version', function () {
+    return response()->json([
+        'version' => '1.0.7',
+        'version_code' => 7,
+        'force_update' => false,
+        'download_url' => url('/updates/planner-1.0.7.apk'),
+        'changelog' => 'Perbaikan tampilan dan penambahan fitur.',
+    ]);
+});
 
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 
@@ -57,6 +67,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/sop/name', [SOPController::class, 'name']);
     Route::get('/sop/file/{uuid}', [SOPController::class, 'file']);
 
+    //KLKH Fuel Station
+    Route::post('/p2h', [P2HController::class, 'store']);
+    Route::get('/p2h', [P2HController::class, 'index']);
+    Route::get('/p2h/detail', [P2HController::class, 'detail']);
+    Route::post('/p2h/verifikasi', [P2HController::class, 'verifikasi']);
+
     //User Diketahui
     Route::get('/users/diketahui', [UserDiketahuiController::class, 'index']);
 
@@ -78,3 +94,4 @@ Route::middleware('auth:sanctum')->group(function () {
     //Profile
     Route::get('/profile', [ProfileController::class, 'index']);
 });
+
