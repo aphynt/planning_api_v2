@@ -20,9 +20,10 @@ Route::get('/app-version', function () {
     return response()->json([
         'version' => '1.0.6',
         'version_code' => 6,
+        'update_available' => false,
         'force_update' => false,
-        'download_url' => url('/updates/planner-1.0.7.apk'),
-        'changelog' => 'Perbaikan tampilan dan penambahan fitur.',
+        'download_url' => null,
+        'changelog' => '',
     ]);
 });
 
