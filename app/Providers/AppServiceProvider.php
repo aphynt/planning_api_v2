@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\URL;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -22,6 +23,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         //
+        URL::forceScheme('https');
         Event::listen(\Illuminate\Console\Events\CommandStarting::class, function ($event) {
             if (in_array($event->command, [
                 'migrate',
