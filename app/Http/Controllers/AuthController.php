@@ -12,42 +12,45 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'nik' => 'required',
+            'nik'      => 'required',
             'password' => 'required',
-        ],
-            [
-                'nik.required' => 'NIK harus diisi!',
-                'password.required' => 'Password harus diisi!',
-            ]
-        );
+        ], [
+            'nik.required'      => 'NIK harus diisi!',
+            'password.required' => 'Password harus diisi!',
+        ]);
 
         try {
             $user = User::where('nik', $request->nik)->first();
-
-            if (! $user || ! Hash::check($request->password, $user->password)) {
+            if (!$user || !Hash::check($request->password, $user->password)) {
                 return response()->json([
-                    'message' => 'Login gagal. NIK atau password salah.',
+                    'message'   => 'Login gagal. NIK atau password salah.',
                     'copyright' => env('COPYRIGHT'),
                 ], 401);
             }
-
+            if ((int) $user->statusenabled !== 1) {
+                return response()->json([
+                    'status'    => 'error',
+                    'message'   => 'Akun Anda tidak aktif.',
+                    'copyright' => env('COPYRIGHT'),
+                ], 403);
+            }
             $token = $user->createToken('auth-token')->plainTextToken;
 
             return response()->json([
-                'message' => 'Berhasil login',
-                'token' => $token,
-                'user' => $user,
+                'message'   => 'Berhasil login',
+                'token'     => $token,
+                'user'      => $user,
                 'copyright' => env('COPYRIGHT'),
-            ]);
+            ], 200);
 
         } catch (\Throwable $th) {
+            report($th);
+
             return response()->json([
-                'status' => 'error',
+                'status'  => 'error',
                 'message' => 'Gagal login, silakan coba kembali',
-                'error' => $th->getMessage(),
             ], 500);
         }
-
     }
 
     public function logout(Request $request)
