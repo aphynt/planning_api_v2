@@ -186,6 +186,40 @@ class P2HController extends Controller
                 ->orderByDesc('val_notok')
                 ->orderBy('p.vhc_id', 'asc')
                 ->get();
+            $vhcIds = $checklists
+                ->pluck('vhc_id')
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+
+            $appLogins = collect();
+
+            foreach (array_chunk($vhcIds, 1000) as $vhcChunk) {
+                $rows = DB::connection('focus')
+                    ->table('dbo.APP_LOGIN')
+                    ->select(
+                        'VHC_ID',
+                        'OPR_REPORTTIME',
+                        'LGN_HOURMETER'
+                    )
+                    ->whereIn('VHC_ID', $vhcChunk)
+                    ->where('LGN_TYPE', 0)
+                    ->orderByDesc('OPR_REPORTTIME')
+                    ->orderByDesc('ID')
+                    ->get();
+
+                foreach ($rows as $login) {
+
+                    $vhcId = trim((string) $login->VHC_ID);
+                    if (!$appLogins->has($vhcId)) {
+                        $appLogins->put(
+                            $vhcId,
+                            $login->LGN_HOURMETER
+                        );
+                    }
+                }
+            }
             $nikList = $checklists
                 ->flatMap(function ($row) {
                     $nrp = trim(
@@ -234,7 +268,8 @@ class P2HController extends Controller
             };
             $results = $checklists->map(function ($row) use (
                 $users,
-                $formatDateTime
+                $formatDateTime,
+                $appLogins
             ) {
                 $vhcId = trim(
                     (string) ($row->vhc_id ?? '')
@@ -259,7 +294,8 @@ class P2HController extends Controller
                 $namaSupervisor = $nikSupervisor
                     ? $users->get(trim((string) $nikSupervisor))
                     : null;
-                // Foreman ATAU Supervisor cukup satu kali memverifikasi.
+
+
                 $nikVerifier = trim((string) ($row->verified_foreman ?: $row->verified_supervisor ?: ''));
                 $roleVerifier = !empty($row->verified_foreman) ? 'FOREMAN'
                     : (!empty($row->verified_supervisor) ? 'SUPERVISOR' : null);
@@ -277,15 +313,11 @@ class P2HController extends Controller
                     'UUID' => $row->uuid,
                     'VHC_ID' => $vhcId,
                     'VHC_PREFIX' => substr($vhcId, 0, 2),
-                    'OPR_REPORTTIME' => $formatDateTime(
-                        $row->opr_reporttime
-                    ),
+                    'OPR_REPORTTIME' => $formatDateTime($row->opr_reporttime),
                     'OPR_NRP' => $nrp,
                     'PERSONALNAME' => $namaOperator,
                     'VAL_NOTOK' => (int) $row->val_notok,
-                    'DATEVERIFIED_OPERATOR' => $formatDateTime(
-                        $row->dateverified_operator
-                    ),
+                    'DATEVERIFIED_OPERATOR' => $formatDateTime($row->dateverified_operator),
                     'VERIFIED_OPERATOR' =>
                         $row->verified_operator,
                     'DATEVERIFIED_MEKANIK' => $formatDateTime(
@@ -305,14 +337,12 @@ class P2HController extends Controller
                     ),
                     'VERIFIED_SUPERVISOR' => $nikSupervisor,
                     'NAMASUPERVISOR' => $namaSupervisor,
-                    'MTR_HOURMETER' =>
-                        $row->mtr_hourmeter,
+                    'MTR_HOURMETER' => ($hourmeter = $appLogins->get($vhcId)) !== null ? number_format((float) $hourmeter, 1, '.', '') : null,
                     'OPR_SHIFTDATE' => $row->opr_shiftdate
                         ? Carbon::parse($row->opr_shiftdate)
                             ->format('Y-m-d')
                         : null,
-                    'OPR_SHIFTNO' =>
-                        $row->opr_shiftno,
+                    'OPR_SHIFTNO' => $row->opr_shiftno,
                     'IS_FOREMAN_ROW' => false,
                     'SECTION_OK' => true,
                 ];
@@ -336,6 +366,7 @@ class P2HController extends Controller
             return response()->json($response, 500);
         }
     }
+
     public function detail(Request $request)
     {
         $validated = $request->validate([
@@ -407,6 +438,7 @@ class P2HController extends Controller
             )->count();
             $notOkCount = $mappedItems->filter(fn ($item) => (string) $item['CHECKLISTVAL'] === '0')->count();
             $first = $uniqueItems->first();
+
             $header = DB::connection('p2h')
                 ->table('opr_oprchecklist')
                 ->where('vhc_id', $vhcId)
@@ -414,9 +446,19 @@ class P2HController extends Controller
                 ->where('opr_reporttime', '>=', $from)
                 ->where('opr_reporttime', '<', $until)
                 ->first();
+
+            $appLogin = DB::connection('focus')
+                ->table('dbo.APP_LOGIN')
+                ->select('LGN_HOURMETER')
+                ->where('VHC_ID', $vhcId)
+                ->where('LGN_TYPE', 0)
+                ->orderByDesc('OPR_REPORTTIME')
+                ->orderByDesc('ID')
+                ->first();
+
+            $hourmeter = $appLogin?->LGN_HOURMETER;
             $verifiedMechanic = $header && $header->verified_mekanik !== null;
 
-            // Verifikasi pengawas final oleh Foreman ATAU Supervisor.
             $verifiedForeman = trim((string) ($header?->verified_foreman ?? ''));
             $verifiedSupervisor = trim((string) ($header?->verified_supervisor ?? ''));
             $alreadyVerified = $verifiedForeman !== '' || $verifiedSupervisor !== '';
@@ -468,7 +510,7 @@ class P2HController extends Controller
                     'OPR_REPORTTIME' => $from,
                     'OPR_SHIFTDATE' => $first->opr_shiftdate,
                     'OPR_SHIFTNO' => $first->opr_shiftno,
-                    'MTR_HOURMETER' => $header?->mtr_hourmeter,
+                    'MTR_HOURMETER' => $hourmeter !== null ? number_format((float) $hourmeter, 1, '.', '') : null,
                     'VERIFIED_OPERATOR' => $header?->verified_operator,
                     'VERIFIED_MEKANIK' => $header?->verified_mekanik,
                     'VERIFIED_FOREMAN' => $header?->verified_foreman,
@@ -504,6 +546,7 @@ class P2HController extends Controller
             ], 500);
         }
     }
+
     public function verifikasi(Request $request)
     {
         $validated = $request->validate([
@@ -589,7 +632,7 @@ class P2HController extends Controller
                     $verifyFields = $role === 'FOREMAN'
                         ? ['verified_foreman' => $user->nik, 'dateverified_foreman' => now()]
                         : ['verified_supervisor' => $user->nik, 'dateverified_supervisor' => now()];
-                    // Kunci header sudah diambil dengan lockForUpdate(): aman dari verifikasi bersamaan.
+
                     if (trim((string) ($header->verified_foreman ?? '')) !== '' ||
                         trim((string) ($header->verified_supervisor ?? '')) !== '') {
                         return response()->json([
@@ -598,7 +641,7 @@ class P2HController extends Controller
                         ], 409);
                     }
                 }
-                // Catatan hanya boleh disunting oleh tahap yang berwenang.
+
                 $byId = $items->keyBy(fn ($item) => (string) $item->id);
                 foreach (($validated['items'] ?? []) as $entry) {
                     $item = $byId->get((string) $entry['ID']);
@@ -625,7 +668,7 @@ class P2HController extends Controller
                             ->update($changes);
                     }
                 }
-                // Semua pembaruan ada pada koneksi/transaction p2h yang SAMA.
+
                 (clone $headerQuery)->update($verifyFields);
                 $connection->table('opr_oprchecklistitem')
                     ->where('vhc_id', $vhcId)
